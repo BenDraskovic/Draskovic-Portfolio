@@ -54,19 +54,19 @@ Something of note before we move forward with analysis is that unfortunately wit
 Diving into the data set itself we can see that it collects data on the Shelter, it's location, the program the shelter provides, what sector it serves, the occupancy head count, the date the count was done, an id number for the entry and the old capacity figures. It also includes 2 collumns that are no longer used. A sample of the data follows bellow.
 
 ```{r}
-head(shelter_usage)
+head(shelter_usage) #Show the first 6 rows of data in the data set
 ```
 
 We can also see that as this is a census done by shelter staff members there are no responses that must be removed from the data set. All responses given by these professionals are appropriate for the value they are describing. 
 
 ```{r}
-visdat::vis_dat(shelter_usage)
+visdat::vis_dat(shelter_usage) #show if there are any na responses in the data set and whta type of value is stored in each collumn
 ```
 
 Looking in to some of the summary statistics for what we see. We see that there are 31,380 recorded responses over the 270 day period this data set covers. Complete_rate 1 shows us that all the collumns were completely completed except the two empty collumns at the end of the data set. We can also see that there are a maximum of 121 unique programs that are being tracked with in this data set. In other words 121 unique shelters provided, even if some are run by the same charity. 
 
 ```{r}
-skimr::skim(shelter_usage)
+skimr::skim(shelter_usage) #provide a brief statistical overview of the data 
 ```
 
 Finally looking at the chart about the numeric variables above we are able to see that the average Occupancy throughout this period for any one shelter was 46.3. This is found under the mean collumn. Furthermore we know that this number may be a little higher than what we would expect as some giant shelters are bringing that number upwards by an effect called skewing. Where very large or small numbers in a data set can overly influence the data despite the fact that they are an outlier. This can be seen by looking at the maximum occupancy of 778 displayed under the collumn p100 or 100th percentile. 
@@ -81,31 +81,31 @@ Taking a closer look at shelter occupancy over time we se an odd shape to the de
 ## Figure 1
 
 ```{r}
-daily_shelter_usage_overall <- shelter_usage %>%
-  select(OCCUPANCY_DATE, SECTOR, OCCUPANCY, PROGRAM_NAME) %>% 
-  mutate(DATE = substr(OCCUPANCY_DATE, 1, 10)) %>% 
-  group_by(DATE) %>% 
-  summarise(OCCUPANCY = sum(OCCUPANCY))
+daily_shelter_usage_overall <- shelter_usage %>%  #generate a new data set 
+  select(OCCUPANCY_DATE, SECTOR, OCCUPANCY, PROGRAM_NAME) %>% #select the collumns we wish to use
+  mutate(DATE = substr(OCCUPANCY_DATE, 1, 10)) %>% #Shorten the dates to remove the time at the end of each date
+  group_by(DATE) %>% #group all rows by date
+  summarise(OCCUPANCY = sum(OCCUPANCY)) #Change Occupancy to be the sum of occupancy on that date
 
-plot1 <- daily_shelter_usage_overall %>% 
-  ggplot(aes( y = OCCUPANCY, x = DATE, color="Overall")) +
-  geom_point() +
-  labs(title = "2020 Daily Shelter Usage by Sector", y = "Daily Occupancy", x = "Date", subtitle = "2020-01-01 to 2020-09-26", color="")+
+plot1 <- daily_shelter_usage_overall %>%   # create a savable plot
+  ggplot(aes( y = OCCUPANCY, x = DATE, color="Overall")) +  #use ggplot with x, y, and color defined
+  geom_point() + #usign a point plot
+  labs(title = "2020 Daily Shelter Usage by Sector", y = "Daily Occupancy", x = "Date", subtitle = "2020-01-01 to 2020-09-26", color="")+ #teming and titling 
   theme_minimal() 
 
-plot1 +  theme(axis.text.x = element_blank())
+plot1 +  theme(axis.text.x = element_blank()) #print the plot and remove the bottom axis labels as they are unreadable
 ```
 
 Looking at the data we see a generally stable daily occupancy of around 7000 Torontonians, until we reach the end of March and the Covid Pandemic first starts to largely effect Toronto. From there we see a rapid decline of occupancy until we reach the month of June where the decline begins to tailor off.
 
 ```{r}
-monthly_shelter_usage <- shelter_usage %>%
-  select(OCCUPANCY_DATE, SECTOR, OCCUPANCY, PROGRAM_NAME) %>% 
-  mutate(MONTH = substr(OCCUPANCY_DATE, 6, 7)) %>% 
-  group_by(MONTH) %>% 
-  summarise(OCCUPANCY = sum(OCCUPANCY))
+monthly_shelter_usage <- shelter_usage %>% #generate a new data set
+  select(OCCUPANCY_DATE, SECTOR, OCCUPANCY, PROGRAM_NAME) %>% #select important columns 
+  mutate(MONTH = substr(OCCUPANCY_DATE, 6, 7)) %>% #change the extended Occupancy_date field to only include the month 
+  group_by(MONTH) %>% #group by this new field
+  summarise(OCCUPANCY = sum(OCCUPANCY)) #Change occupancy to be the total occupancy in that month
 
-monthly_shelter_usage
+monthly_shelter_usage #print this table 
 ```
 
 Looking at the monthly figures we largely see the same story. 
@@ -127,28 +127,28 @@ Having said that, seeing whether Shelters were being closed or opened during thi
 ## Figure 2
 
 ```{r}
-number_of_unique_shelters <- shelter_usage %>%
-  mutate(DATE = substr(OCCUPANCY_DATE, 1, 10), UNIQUE_sHELTERS = 0) %>% 
-  group_by(DATE) %>% 
-  summarise(UNIQUE_SHELTERS = n_distinct(PROGRAM_NAME))
+number_of_unique_shelters <- shelter_usage %>% #create new data set to save in to
+  mutate(DATE = substr(OCCUPANCY_DATE, 1, 10), UNIQUE_sHELTERS = 0) %>% #Shorten Occupancy_date to remove the time, create new empty column called Unique_shelters
+  group_by(DATE) %>% #group by the date
+  summarise(UNIQUE_SHELTERS = n_distinct(PROGRAM_NAME)) #fill Unique_shelters with a count of each distinct program name by date
 
-plot3 <- number_of_unique_shelters %>% 
-  ggplot(aes( y = UNIQUE_SHELTERS, x = DATE, color = "Overall")) +
+plot3 <- number_of_unique_shelters %>% #save the plot
+  ggplot(aes( y = UNIQUE_SHELTERS, x = DATE, color = "Overall")) + #use gg plot to create a point plot with x, y, and colour
   geom_point() +
   labs(title = "2020 Number of Unique Shelters", y = "Number of Unique Shelters", x = "Date", subtitle = "2020-01-01 to 2020-09-26", color="")+
   theme_minimal() 
 
-plot3 +  theme(axis.text.x = element_blank())
+plot3 +  theme(axis.text.x = element_blank()) #print plot and remove the x axis lsit of dates as illegible 
 ```
 
 ```{r}
-number_of_unique_shelters_monthly <- shelter_usage %>%
-  select(OCCUPANCY_DATE, SECTOR, OCCUPANCY, PROGRAM_NAME) %>% 
-  mutate(MONTH = substr(OCCUPANCY_DATE, 6, 7), UNIQUE_SHELTERS = 0) %>% 
-  group_by(MONTH) %>% 
-  summarise(UNIQUE_SHELTERS = n_distinct(PROGRAM_NAME))
+number_of_unique_shelters_monthly <- shelter_usage %>% #generate new data set
+  select(OCCUPANCY_DATE, SECTOR, OCCUPANCY, PROGRAM_NAME) %>%  #select what is needed
+  mutate(MONTH = substr(OCCUPANCY_DATE, 6, 7), UNIQUE_SHELTERS = 0) %>%  #add Unique_shelters and shorten Occupancy_date to only month
+  group_by(MONTH) %>%  #group by month
+  summarise(UNIQUE_SHELTERS = n_distinct(PROGRAM_NAME)) #fill empty Unique_shelters with number of distinct program names in a month
 
-number_of_unique_shelters_monthly
+number_of_unique_shelters_monthly #print this table
 ```
 
 Interestingly we can see that as the pandemic began to hit there was a small increase in Shelters open to the public. However, what is more significant is the sizable drop in permanent shelters in September. Could this be linked to the overall drop in occupancy in September we see in Figure 1? 
@@ -160,19 +160,19 @@ Another way to endeavor to check the hypothesois that Occupation is largely beig
 ## Figure 3
 
 ```{r}
-daily_shelter_usage <- shelter_usage %>%
-  select(OCCUPANCY_DATE, SECTOR, OCCUPANCY, PROGRAM_NAME) %>% 
-  mutate(DATE = substr(OCCUPANCY_DATE, 1, 10)) %>% 
-  group_by(DATE, SECTOR) %>% 
-  summarise(OCCUPANCY = sum(OCCUPANCY))
+daily_shelter_usage <- shelter_usage %>% #generate new data set 
+  select(OCCUPANCY_DATE, SECTOR, OCCUPANCY, PROGRAM_NAME) %>% #select important collumns
+  mutate(DATE = substr(OCCUPANCY_DATE, 1, 10)) %>% #shorten the occupancy date removing time
+  group_by(DATE, SECTOR) %>% #group by both date and sector
+  summarise(OCCUPANCY = sum(OCCUPANCY)) #replace Occupancy with the sum of occupants in each type of shelter on each individual day
 
-plot2 <- daily_shelter_usage %>% 
-  ggplot(aes( y = OCCUPANCY, x = DATE, color = SECTOR)) +
+plot2 <- daily_shelter_usage %>%  #save the plot
+  ggplot(aes( y = OCCUPANCY, x = DATE, color = SECTOR)) + #use ggplot to create point plot wiht x, y, and color
   geom_point() +
   labs(title = "2020 Daily Shelter Usage by Sector", y = "Daily Occupancy", x = "Date", subtitle = "2020-01-01 to 2020-09-26", color = "Shelter Sector" )+
   theme_minimal() 
 
-plot2 +  theme(axis.text.x = element_blank()) 
+plot2 +  theme(axis.text.x = element_blank()) #print plot and remove x axis labels as they are illegible 
 ```
 
 This graph provides another interesting view of the trend. While Sectors, like Shelters for Men and for Women, follow the curve we would predict, a sharp drop followed by a levelling out many other sectors do not. 
